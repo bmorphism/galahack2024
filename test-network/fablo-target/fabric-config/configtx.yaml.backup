@@ -1,0 +1,221 @@
+################################################################################
+#   SECTION: Capabilities
+################################################################################
+Capabilities:
+    Channel: &ChannelCapabilities
+        V2_0: true
+    Orderer: &OrdererCapabilities
+        V2_0: true
+    Application: &ApplicationCapabilities
+        V2_0: true
+
+################################################################################
+#   CHANNEL Defaults
+################################################################################
+Channel: &ChannelDefaults
+    Policies:
+        Readers:
+            Type: ImplicitMeta
+            Rule: "ANY Readers"
+        Writers:
+            Type: ImplicitMeta
+            Rule: "ANY Writers"
+        Admins:
+            Type: ImplicitMeta
+            Rule: "MAJORITY Admins"
+    Capabilities:
+        <<: *ChannelCapabilities
+
+################################################################################
+#   Section: Organizations
+################################################################################
+Organizations:
+    - &OrdererOrg
+      Name: OrdererOrg
+      ID: OrdererOrg
+      MSPDir: crypto-config/peerOrganizations/orderer.local/msp
+
+      Policies:
+          Readers:
+              Type: Signature
+              Rule: "OR('OrdererOrg.member')"
+          Writers:
+              Type: Signature
+              Rule: "OR('OrdererOrg.member')"
+          Admins:
+              Type: Signature
+              Rule: "OR('OrdererOrg.admin')"
+          Endorsement:
+              Type: Signature
+              Rule: "OR('OrdererOrg.member')"
+
+      AnchorPeers:
+
+    - &CuratorOrg
+      Name: CuratorOrg
+      ID: CuratorOrg
+      MSPDir: crypto-config/peerOrganizations/curator.local/msp
+
+      Policies:
+          Readers:
+              Type: Signature
+              Rule: "OR('CuratorOrg.member')"
+          Writers:
+              Type: Signature
+              Rule: "OR('CuratorOrg.member')"
+          Admins:
+              Type: Signature
+              Rule: "OR('CuratorOrg.admin')"
+          Endorsement:
+              Type: Signature
+              Rule: "OR('CuratorOrg.member')"
+
+      AnchorPeers:
+          - Host: peer0.curator.local
+            Port: 7041
+
+    - &PartnerOrg1
+      Name: PartnerOrg1
+      ID: PartnerOrg1
+      MSPDir: crypto-config/peerOrganizations/partner1.local/msp
+
+      Policies:
+          Readers:
+              Type: Signature
+              Rule: "OR('PartnerOrg1.member')"
+          Writers:
+              Type: Signature
+              Rule: "OR('PartnerOrg1.member')"
+          Admins:
+              Type: Signature
+              Rule: "OR('PartnerOrg1.admin')"
+          Endorsement:
+              Type: Signature
+              Rule: "OR('PartnerOrg1.member')"
+
+      AnchorPeers:
+          - Host: peer0.partner1.local
+            Port: 7061
+
+    - &UsersOrg1
+      Name: UsersOrg1
+      ID: UsersOrg1
+      MSPDir: crypto-config/peerOrganizations/users1.local/msp
+
+      Policies:
+          Readers:
+              Type: Signature
+              Rule: "OR('UsersOrg1.member')"
+          Writers:
+              Type: Signature
+              Rule: "OR('UsersOrg1.member')"
+          Admins:
+              Type: Signature
+              Rule: "OR('UsersOrg1.admin')"
+          Endorsement:
+              Type: Signature
+              Rule: "OR('UsersOrg1.member')"
+
+      AnchorPeers:
+
+################################################################################
+#   SECTION: Application
+################################################################################
+Application: &ApplicationDefaults
+    Organizations:
+    # Policies defines the set of policies at this level of the config tree
+    # For Application policies, their canonical path is
+    #   /Channel/Application/<PolicyName>
+    Policies:
+        Readers:
+            Type: ImplicitMeta
+            Rule: "ANY Readers"
+        Writers:
+            Type: ImplicitMeta
+            Rule: "ANY Writers"
+        Admins:
+            Type: ImplicitMeta
+            Rule: "MAJORITY Admins"
+        Endorsement:
+            Type: ImplicitMeta
+            Rule: "MAJORITY Endorsement"
+    Capabilities:
+        <<: *ApplicationCapabilities
+
+################################################################################
+#   SECTION: Orderer
+################################################################################
+Orderer: &Group1Defaults
+    OrdererType: solo
+    Addresses:
+        - orderer0.group1.orderer.local:7030
+    BatchTimeout: 2s
+    BatchSize:
+        MaxMessageCount: 10
+        AbsoluteMaxBytes: 99 MB
+        PreferredMaxBytes: 512 KB
+    Organizations:
+    # Policies defines the set of policies at this level of the config tree
+    # For Orderer policies, their canonical path is
+    #   /Channel/Orderer/<PolicyName>
+    Policies:
+        Readers:
+            Type: ImplicitMeta
+            Rule: "ANY Readers"
+        Writers:
+            Type: ImplicitMeta
+            Rule: "ANY Writers"
+        Admins:
+            Type: ImplicitMeta
+            Rule: "MAJORITY Admins"
+        # BlockValidation specifies what signatures must be included in the block
+        # from the orderer for the peer to validate it.
+        BlockValidation:
+            Type: ImplicitMeta
+            Rule: "ANY Writers"
+    Capabilities:
+        <<: *OrdererCapabilities
+
+################################################################################
+#   Profile
+################################################################################
+# https://github:com/hyperledger/fabric/blob/master/sampleconfig/configtx.yaml
+
+Profiles:
+    # Profile used to create Genesis block for group group1 #
+    Group1Genesis:
+        <<: *ChannelDefaults
+        Orderer:
+            <<: *Group1Defaults
+            Organizations:
+                - *OrdererOrg
+            Capabilities:
+                <<: *OrdererCapabilities
+        Consortiums:
+            SampleConsortium:
+                Organizations:
+                    - *OrdererOrg
+                    - *CuratorOrg
+                    - *PartnerOrg1
+                    - *UsersOrg1
+
+    # Profile used to create channeltx for product-channel #
+    ProductChannel:
+        <<: *ChannelDefaults
+        Orderer:
+            <<: *Group1Defaults
+            Organizations:
+                - *OrdererOrg
+            Capabilities:
+                <<: *ApplicationCapabilities
+        Consortium: SampleConsortium
+        Consortiums:
+            SampleConsortium:
+                Organizations:
+                    - *CuratorOrg
+                    - *PartnerOrg1
+        Application:
+            <<: *ApplicationDefaults
+            Organizations:
+                - *CuratorOrg
+                - *PartnerOrg1

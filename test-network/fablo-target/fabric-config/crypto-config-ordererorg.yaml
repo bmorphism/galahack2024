@@ -1,0 +1,9 @@
+PeerOrgs:
+  - Name: OrdererOrg
+    Domain: orderer.local
+    Specs:
+      - Hostname: orderer0.group1
+    Template:
+      Count: 0
+    Users:
+      Count: 1

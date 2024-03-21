@@ -1,0 +1,8 @@
+PeerOrgs:
+  - Name: CuratorOrg
+    Domain: curator.local
+    Specs:
+    Template:
+      Count: 1
+    Users:
+      Count: 1

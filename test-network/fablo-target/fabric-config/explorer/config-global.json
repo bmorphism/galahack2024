@@ -1,0 +1,13 @@
+{
+  "network-configs": {
+    "network-curatororg": {
+      "name": "Network of CuratorOrg",
+      "profile": "/opt/explorer/app/platform/fabric/connection-profile/connection-profile-curatororg.json"
+    },
+    "network-partnerorg1": {
+      "name": "Network of PartnerOrg1",
+      "profile": "/opt/explorer/app/platform/fabric/connection-profile/connection-profile-partnerorg1.json"
+    }
+  },
+  "license": "Apache-2.0"
+}

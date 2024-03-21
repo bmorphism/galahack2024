@@ -1,0 +1,24 @@
+name: fablo-test-network-partnerorg1
+description: Connection profile for PartnerOrg1 in Fablo network
+version: 1.0.0
+client:
+  organization: PartnerOrg1
+organizations:
+  PartnerOrg1:
+    mspid: PartnerOrg1
+    peers:
+      - peer0.curator.local
+      - peer0.partner1.local
+    certificateAuthorities:
+      - ca.partner1.local
+peers:
+  peer0.curator.local:
+    url: grpc://localhost:7041
+  peer0.partner1.local:
+    url: grpc://localhost:7061
+certificateAuthorities:
+  ca.partner1.local:
+    url: http://localhost:7060
+    caName: ca.partner1.local
+    httpOptions:
+      verify: false

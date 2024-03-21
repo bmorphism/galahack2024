@@ -1,0 +1,37 @@
+{
+  "name": "fablo-test-network-usersorg1",
+  "description": "Connection profile for UsersOrg1 in Fablo network",
+  "version": "1.0.0",
+  "client": {
+    "organization": "UsersOrg1"
+  },
+  "organizations": {
+    "UsersOrg1": {
+      "mspid": "UsersOrg1",
+      "peers": [
+        "peer0.curator.local",
+        "peer0.partner1.local"
+      ],
+      "certificateAuthorities": [
+        "ca.users1.local"
+      ]
+    }
+  },
+  "peers": {
+    "peer0.curator.local": {
+      "url": "grpc://localhost:7041"
+    },
+    "peer0.partner1.local": {
+      "url": "grpc://localhost:7061"
+    }
+  },
+  "certificateAuthorities": {
+    "ca.users1.local": {
+      "url": "http://localhost:7080",
+      "caName": "ca.users1.local",
+      "httpOptions": {
+        "verify": false
+      }
+    }
+  }
+}

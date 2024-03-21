@@ -1,0 +1,287 @@
+################################################################################
+#   SECTION: Capabilities
+################################################################################
+Capabilities:
+  Channel: &ChannelCapabilities
+    V2_0: true
+  Orderer: &OrdererCapabilities
+    V2_0: true
+  Application: &ApplicationCapabilities
+    V2_0: true
+################################################################################
+#   CHANNEL Defaults
+################################################################################
+Channel: &ChannelDefaults
+  Policies:
+    # Who may invoke the 'Deliver' API
+    Readers:
+      Type: ImplicitMeta
+      Rule: "ANY Readers"
+    # Who may invoke the 'Broadcast' API
+    Writers:
+      Type: ImplicitMeta
+      Rule: "ANY Writers"
+    # By default, who may modify elements at this config level
+    Admins:
+      Type: ImplicitMeta
+      Rule: "MAJORITY Admins"
+  Capabilities:
+    !!merge <<: *ChannelCapabilities
+################################################################################
+#   Section: Organizations
+################################################################################
+Organizations:
+  - &OrdererOrg
+    Name: OrdererOrg
+    ID: OrdererOrg
+    MSPDir: crypto-config/peerOrganizations/orderer.local/msp
+    Policies:
+      Readers:
+        Type: Signature
+        Rule: "OR('OrdererOrg.member')"
+      Writers:
+        Type: Signature
+        Rule: "OR('OrdererOrg.member')"
+      Admins:
+        Type: Signature
+        Rule: "OR('OrdererOrg.admin')"
+        # No 'Endorsement' required, this org won't be a part of Channel/Application,
+        # it is just an ordering organization (Channel/Orderer)
+    AnchorPeers:
+  - &CuratorOrg
+    Name: CuratorOrg
+    ID: CuratorOrg
+    MSPDir: crypto-config/peerOrganizations/curator.local/msp
+    Policies:
+      Readers:
+        Type: Signature
+        Rule: "OR('CuratorOrg.member')"
+      Writers:
+        Type: Signature
+        Rule: "OR('CuratorOrg.member')"
+      Admins:
+        Type: Signature
+        Rule: "OR('CuratorOrg.admin')"
+      Endorsement:
+        Type: Signature
+        Rule: "OR('CuratorOrg.member')"
+      CuratorChannelLifecycle:
+        Type: Signature
+        Rule: "OR('CuratorOrg.member')"
+      PartnerChannelLifecycle:
+        Type: Signature
+        Rule: "OR('CuratorOrg.member')"
+    AnchorPeers:
+      - Host: peer0.curator.local
+        Port: 7041
+  - &PartnerOrg1
+    Name: PartnerOrg1
+    ID: PartnerOrg1
+    MSPDir: crypto-config/peerOrganizations/partner1.local/msp
+    Policies:
+      Readers:
+        Type: Signature
+        Rule: "OR('PartnerOrg1.member')"
+      Writers:
+        Type: Signature
+        Rule: "OR('PartnerOrg1.member')"
+      Admins:
+        Type: Signature
+        Rule: "OR('PartnerOrg1.admin')"
+      Endorsement:
+        Type: Signature
+        Rule: "OR('PartnerOrg1.member')"
+      CuratorChannelLifecycle:
+        Type: Signature
+        Rule: "OR('CuratorOrg.member')" # Does not take part in chaincode installation, but trusts the CuratorOrg
+      PartnerChannelLifecycle:
+        Type: Signature
+        Rule: "OR('PartnerOrg1.member')"
+    AnchorPeers:
+      - Host: peer0.partner1.local
+        Port: 7061
+  - &UsersOrg1
+    Name: UsersOrg1
+    ID: UsersOrg1
+    MSPDir: crypto-config/peerOrganizations/users1.local/msp
+    Policies:
+      Readers:
+        Type: Signature
+        Rule: "OR('UsersOrg1.member')"
+      Writers:
+        Type: Signature
+        Rule: "OR('UsersOrg1.member')"
+      Admins:
+        Type: Signature
+        Rule: "OR('UsersOrg1.admin')"
+      # No Endorsement
+      CuratorChannelLifecycle:
+        Type: Signature
+        Rule: "OR('CuratorOrg.member', 'PartnerOrg1.member')" # Does not take part in chaincode installation, but trusts other orgs
+      PartnerChannelLifecycle:
+        Type: Signature
+        Rule: "OR('CuratorOrg.member', 'PartnerOrg1.member')" # Does not take part in chaincode installation, but trusts other orgs
+    AnchorPeers:
+################################################################################
+#   SECTION: Application
+################################################################################
+Application: &ApplicationDefaults
+  Organizations:
+  # Policies defines the set of policies at this level of the config tree
+  # For Application policies, their canonical path is
+  #   /Channel/Application/<PolicyName>
+  Policies: &ApplicationDefaultPolicies
+    LifecycleEndorsement:
+      Type: ImplicitMeta
+      Rule: "MAJORITY Endorsement"
+    Endorsement:
+      Type: ImplicitMeta
+      Rule: "MAJORITY Endorsement"
+    Readers:
+      Type: ImplicitMeta
+      Rule: "ANY Readers"
+    Writers:
+      Type: ImplicitMeta
+      Rule: "ANY Writers"
+    Admins:
+      Type: ImplicitMeta
+      Rule: "MAJORITY Admins"
+  Capabilities:
+    !!merge <<: *ApplicationCapabilities
+  ACLs:
+    # Override default ACLs to specify custom policy for chaincode approval
+    _lifecycle/CheckCommitReadiness: /Channel/Application/LifecycleEndorsement
+    _lifecycle/CommitChaincodeDefinition: /Channel/Application/LifecycleEndorsement
+    _lifecycle/QueryChaincodeDefinition: /Channel/Application/Writers
+    _lifecycle/QueryChaincodeDefinitions: /Channel/Application/Writers
+    lscc/ChaincodeExists: /Channel/Application/Readers
+    lscc/GetDeploymentSpec: /Channel/Application/Readers
+    lscc/GetChaincodeData: /Channel/Application/Readers
+    lscc/GetInstantiatedChaincodes: /Channel/Application/Readers
+    qscc/GetChainInfo: /Channel/Application/Readers
+    qscc/GetBlockByNumber: /Channel/Application/Readers
+    qscc/GetBlockByHash: /Channel/Application/Readers
+    qscc/GetTransactionByID: /Channel/Application/Readers
+    qscc/GetBlockByTxID: /Channel/Application/Readers
+    cscc/GetConfigBlock: /Channel/Application/Readers
+    cscc/GetChannelConfig: /Channel/Application/Readers
+    peer/Propose: /Channel/Application/Writers
+    peer/ChaincodeToChaincode: /Channel/Application/Writers
+    event/Block: /Channel/Application/Readers
+    event/FilteredBlock: /Channel/Application/Readers
+################################################################################
+#   SECTION: Orderer
+################################################################################
+Orderer: &Group1Defaults
+  OrdererType: solo
+  Addresses:
+    - orderer0.group1.orderer.local:7030
+  BatchTimeout: 1s
+  BatchSize:
+    MaxMessageCount: 1
+    AbsoluteMaxBytes: 99 MB
+    PreferredMaxBytes: 512 KB
+  Organizations:
+  # Policies defines the set of policies at this level of the config tree
+  # For Orderer policies, their canonical path is
+  #   /Channel/Orderer/<PolicyName>
+  Policies:
+    Readers:
+      Type: ImplicitMeta
+      Rule: "ANY Readers"
+    Writers:
+      Type: ImplicitMeta
+      Rule: "ANY Writers"
+    Admins:
+      Type: ImplicitMeta
+      Rule: "MAJORITY Admins"
+    BlockValidation:
+      Type: ImplicitMeta
+      Rule: "ANY Writers"
+  Capabilities:
+    !!merge <<: *OrdererCapabilities
+################################################################################
+#   Profile
+################################################################################
+# https://github:com/hyperledger/fabric/blob/master/sampleconfig/configtx.yaml
+Profiles:
+  # Profile used to create Genesis block for group group1 #
+  Group1Genesis:
+    !!merge <<: *ChannelDefaults
+    Orderer:
+      !!merge <<: *Group1Defaults
+      Organizations:
+        - *OrdererOrg
+      Capabilities:
+        !!merge <<: *OrdererCapabilities
+    Consortiums:
+      SampleConsortium:
+        Organizations:
+          - *OrdererOrg
+          - *CuratorOrg
+          - *PartnerOrg1
+          - *UsersOrg1
+  CuratorChannel: &CuratorChannelDefaults
+    !!merge <<: *ChannelDefaults
+    Orderer:
+      !!merge <<: *Group1Defaults
+      Organizations:
+        - *OrdererOrg
+    Application:
+      !!merge <<: *ApplicationDefaults
+      Policies:
+        !!merge <<: *ApplicationDefaultPolicies
+        LifecycleEndorsement:
+          Type: ImplicitMeta
+          Rule: "MAJORITY CuratorChannelLifecycle" # specific policy for curator channel
+        Endorsement:
+          Type: Signature
+          Rule: "AND('CuratorOrg.member', 'PartnerOrg1.member')" # Signature policy here, UsersOrg skipped
+        Admins:
+          Type: Signature
+          Rule: "AND('CuratorOrg.member', 'PartnerOrg1.member')" # Signature policy here, UsersOrg skipped
+      Organizations:
+        - !!merge <<: *CuratorOrg
+        - !!merge <<: *PartnerOrg1
+        - !!merge <<: *UsersOrg1
+    # Consortium(s) is a legacy required by Fablo, can be skipped for flow without system channel
+    Consortium: SampleConsortium
+    Consortiums:
+      SampleConsortium:
+        Organizations:
+          - !!merge <<: *CuratorOrg
+          - !!merge <<: *PartnerOrg1
+          - !!merge <<: *UsersOrg1
+  PartnerChannel: &PartnerChannelDefaults
+    !!merge <<: *ChannelDefaults
+    Orderer:
+      !!merge <<: *Group1Defaults
+      Organizations:
+        - *OrdererOrg
+    Application:
+      !!merge <<: *ApplicationDefaults
+      Policies:
+        !!merge <<: *ApplicationDefaultPolicies
+        LifecycleEndorsement:
+          Type: ImplicitMeta
+          Rule: "MAJORITY PartnerChannelLifecycle" # specific policy for partner channel
+        Endorsement:
+          Type: Signature
+          Rule: "AND('CuratorOrg.member', 'PartnerOrg1.member')" # Signature policy here, UsersOrg skipped
+        Admins:
+          Type: Signature
+          Rule: "AND('CuratorOrg.member', 'PartnerOrg1.member')" # Signature policy here, UsersOrg skipped
+      Organizations:
+        - !!merge <<: *CuratorOrg
+        - !!merge <<: *PartnerOrg1
+        - !!merge <<: *UsersOrg1
+    # Consortium(s) is a legacy required by Fablo, can be skipped for flow without system channel
+    Consortium: SampleConsortium
+    Consortiums:
+      SampleConsortium:
+        Organizations:
+          - !!merge <<: *CuratorOrg
+          - !!merge <<: *PartnerOrg1
+          - !!merge <<: *UsersOrg1
+  ProductChannel:
+    !!merge <<: *CuratorChannelDefaults

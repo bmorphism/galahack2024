@@ -1,0 +1,8 @@
+PeerOrgs:
+  - Name: UsersOrg1
+    Domain: users1.local
+    Specs:
+    Template:
+      Count: 0
+    Users:
+      Count: 1
